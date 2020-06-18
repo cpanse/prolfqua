@@ -2,6 +2,12 @@
 
 # Creating models from configuration ----
 
+.ehandler = function(e){
+  warning("WARN :", e)
+  # return string here
+  as.character(e)
+}
+
 
 #' Create custom lmer model
 #'
@@ -26,7 +32,7 @@ make_custom_model_lmer <- function(modelstr,
       return(formula)
     }
     modelTest <- tryCatch(lmerTest::lmer( formula , data = x ),
-                          error = function(e){warning(e) ; NULL})
+                          error = .ehandler)
     return(modelTest)
   }
   res <- list(model_fun = model_fun,
@@ -57,7 +63,7 @@ make_custom_model_lm <- function(modelstr,
       return(formula)
     }
     modelTest <- tryCatch(lm( formula , data = x ),
-                          error = function(e){warning(e) ; NULL})
+                          error = .ehandler)
     return(modelTest)
   }
   res <- list(model_fun = model_fun,
@@ -136,7 +142,7 @@ model_analyse <- function(pepIntensity,
 
   nestProtein %>% dplyr::mutate(!!lmermodel := purrr::map(data, modelFunction$model_fun)) -> modelProtein
 
-  modelProtein <- modelProtein %>% dplyr::mutate(!!"exists_lmer" := purrr::map_lgl(!!sym(lmermodel), function(x){!is.null(x)}))
+  modelProtein <- modelProtein %>% dplyr::mutate(!!"exists_lmer" := purrr::map_lgl(!!sym(lmermodel), function(x){!is.character(x)}))
 
   modelProteinF <- modelProtein %>% dplyr::filter( !!sym("exists_lmer") == TRUE)
   modelProteinF <- modelProteinF %>% dplyr::mutate(!!"isSingular" := purrr::map_lgl(!!sym(lmermodel), modelFunction$isSingular ))

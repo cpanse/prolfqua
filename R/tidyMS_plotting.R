@@ -374,7 +374,7 @@ plot_heatmap <- function(data, config, na_fraction = 0.4, ...){
 plot_NA_heatmap <- function(data,
                             config,
                             limitrows = 10000,
-                            distance = "binary"){
+                            distance = "binary") {
   res <-  toWideConfig(data, config , as.matrix = TRUE)
   annot <- res$annotation
   res <- res$data
@@ -387,11 +387,11 @@ plot_NA_heatmap <- function(data,
   res[!is.na(res)] <- 0
   res[is.na(res)] <- 1
   allrows <- nrow(res)
-  res <- res[apply(res,1, sum) > 0,]
+  res <- res[apply(res,1, sum) > 0, , drop = FALSE]
 
   message("rows with NA's: ", nrow(res), "; all rows :", allrows, "\n")
 
-  if (nrow(res) > 0) {
+  if (nrow(res) > 1) {
     res <- if (nrow(res) > limitrows ) {
       message("limiting nr of rows to:", limitrows,"\n")
       res[sample( 1:nrow(res),limitrows),]

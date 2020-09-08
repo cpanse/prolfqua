@@ -111,7 +111,7 @@ LFQData <- R6::R6Class(
       return(LFQDataStats$new(self))
     },
     get_Transformer = function(){
-      return(LFQDataTransformer$new(self))
+      return(LFQDataTransformer$new(self$clone(deep = TRUE)))
     },
     #' @description
     #' get difference of self with other if other is subset of self
@@ -146,8 +146,7 @@ LFQData <- R6::R6Class(
 #' istar$data <- istar$data %>% dplyr::filter(protein_Id %in% sample(protein_Id, 100))
 #' lfqdata <- LFQData$new(istar$data, istar$config)
 #'
-#' lfqcopy <- lfqdata$clone_d()
-#' lfqTrans <- lfqcopy$get_Transformer()
+#' lfqTrans <- lfqdata$get_Transformer()
 #'
 #' x <- lfqTrans$intensity_array(log2)
 #' x$lfq$config$table$is_intensity_transformed
@@ -156,14 +155,16 @@ LFQData <- R6::R6Class(
 #' plotter$intensity_distribution_density()
 #'
 #' # transform by asinh root and scale
-#' lfqcopy <- lfqdata$clone_d()
-#' lfqTrans <- lfqcopy$get_Transformer()
+#' lfqTrans <- lfqdata$get_Transformer()
 #' x <- lfqTrans$intensity_array(asinh)
-#' x$lfq$config$table$is_intensity_transformed
 #' x <- lfqTrans$intensity_matrix(robust_scale)
 #' plotter <- x$lfq$get_Plotter()
 #' plotter$intensity_distribution_density()
 #'
+#' lfqTrans <- lfqdata$get_Transformer()
+#' x <- lfqTrans$remove_small_intensities(threshold = 10)$log2_robscale()
+#' plotter <- x$lfq$get_Plotter()
+#' plotter$intensity_distribution_density()
 LFQDataTransformer <- R6::R6Class(
   "LFQDataTransformer",
   public = list(
@@ -174,31 +175,30 @@ LFQDataTransformer <- R6::R6Class(
     },
     #' @description
     #' log2 transform and robust scale datas
-    #' @return LFQDataTransformer (self)
+    #' @return LFQData
     log2_robscale = function(){
       r <- LFQService::normalize_log2_robscale(self$lfq$data, self$lfq$config)
       self$lfq$data <- r$data
       self$lfq$config <- r$config
-      return(self)
+      return(self$lfq)
     },
     #' @description
     #' log2 transform and robust scale data based on subset
     #' @param LFQData
-    #' @return LFQDataTransformer (self)
+    #' @return LFQData
     #'
     log2_robscale_subset = function(lfqsubset){
-      if(self$lfq$is_transformed() != lfqsubset$is_transformed()){
+      if (self$lfq$is_transformed() != lfqsubset$is_transformed()) {
         warning("the subset must have the same config as self")
         return(NULL)
       }
-      if(self$lfq$is_transformed() == FALSE){
+      if (self$lfq$is_transformed() == FALSE) {
         self$lfq$data  <-  LFQService::transform_work_intensity(self$lfq$data , self$lfq$config, log2)
         lfqsubset$data <- LFQService::transform_work_intensity(lfqsubset$data, lfqsubset$config, log2)
         self$lfq$is_transformed(TRUE)
       }
       self$lfq$data  <-  LFQService::scale_with_subset(self$lfq$data, lfqsubset$data, self$lfq$config)
-
-      return(self)
+      return(self$lfq)
     },
     #' @description
     #' Transforms intensities
@@ -216,8 +216,11 @@ LFQDataTransformer <- R6::R6Class(
       return(self)
     },
     #' @description
+    #' Transform intensities with any function working on a matrix
+    #' Should be able to work with vsn::justvsn, preprocessCore::normalize.quantiles, preprocessCore::normalize.quantiles.robust etc.
     #' @param .func any function taking a matrix and returning a matrix (columns sample, rows feature e.g. base::scale) default robust_scale
     #' @return LFQDataTransformer (self)
+    #'
     #'
     intensity_matrix = function(.func = robust_scale){
       .call <- as.list( match.call() )
@@ -227,6 +230,11 @@ LFQDataTransformer <- R6::R6Class(
         .func = .func,
         .funcname = deparse(.call$.func))
       self$lfq$data <- r
+      return(self)
+    },
+    #
+    remove_small_intensities = function(threshold = 4){
+      self$lfq$data <- LFQService::remove_small_intensities(self$lfq$data, self$lfq$config, threshold = threshold)
       return(self)
     }
   )

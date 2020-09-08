@@ -20,8 +20,7 @@ istar <- LFQServiceData::ionstar$filtered()
 istar$data <- istar$data \%>\% dplyr::filter(protein_Id \%in\% sample(protein_Id, 100))
 lfqdata <- LFQData$new(istar$data, istar$config)
 
-lfqcopy <- lfqdata$clone_d()
-lfqTrans <- lfqcopy$get_Transformer()
+lfqTrans <- lfqdata$get_Transformer()
 
 x <- lfqTrans$intensity_array(log2)
 x$lfq$config$table$is_intensity_transformed
@@ -30,14 +29,16 @@ plotter <- x$lfq$get_Plotter()
 plotter$intensity_distribution_density()
 
 # transform by asinh root and scale
-lfqcopy <- lfqdata$clone_d()
-lfqTrans <- lfqcopy$get_Transformer()
+lfqTrans <- lfqdata$get_Transformer()
 x <- lfqTrans$intensity_array(asinh)
-x$lfq$config$table$is_intensity_transformed
 x <- lfqTrans$intensity_matrix(robust_scale)
 plotter <- x$lfq$get_Plotter()
 plotter$intensity_distribution_density()
 
+lfqTrans <- lfqdata$get_Transformer()
+x <- lfqTrans$remove_small_intensities(threshold = 10)$log2_robscale()
+plotter <- x$lfq$get_Plotter()
+plotter$intensity_distribution_density()
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -47,6 +48,7 @@ plotter$intensity_distribution_density()
 \item \href{#method-log2_robscale_subset}{\code{LFQDataTransformer$log2_robscale_subset()}}
 \item \href{#method-intensity_array}{\code{LFQDataTransformer$intensity_array()}}
 \item \href{#method-intensity_matrix}{\code{LFQDataTransformer$intensity_matrix()}}
+\item \href{#method-remove_small_intensities}{\code{LFQDataTransformer$remove_small_intensities()}}
 \item \href{#method-clone}{\code{LFQDataTransformer$clone()}}
 }
 }
@@ -69,7 +71,7 @@ log2 transform and robust scale datas
 }
 
 \subsection{Returns}{
-LFQDataTransformer (self)
+LFQData
 }
 }
 \if{html}{\out{<hr>}}
@@ -82,7 +84,7 @@ log2 transform and robust scale data based on subset
 }
 
 \subsection{Returns}{
-LFQDataTransformer (self)
+LFQData
 }
 }
 \if{html}{\out{<hr>}}
@@ -109,6 +111,8 @@ LFQDataTransformer (self)
 \if{html}{\out{<a id="method-intensity_matrix"></a>}}
 \if{latex}{\out{\hypertarget{method-intensity_matrix}{}}}
 \subsection{Method \code{intensity_matrix()}}{
+Transform intensities with any function working on a matrix
+Should be able to work with vsn::justvsn, preprocessCore::normalize.quantiles, preprocessCore::normalize.quantiles.robust etc.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{LFQDataTransformer$intensity_matrix(.func = robust_scale)}\if{html}{\out{</div>}}
 }
@@ -123,6 +127,15 @@ LFQDataTransformer (self)
 \subsection{Returns}{
 LFQDataTransformer (self)
 }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-remove_small_intensities"></a>}}
+\if{latex}{\out{\hypertarget{method-remove_small_intensities}{}}}
+\subsection{Method \code{remove_small_intensities()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LFQDataTransformer$remove_small_intensities(threshold = 4)}\if{html}{\out{</div>}}
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-clone"></a>}}

@@ -2,7 +2,7 @@
 
 ![prolfqua](inst/Figures/imgfile.png)
 
-The R package contains vignettes and functions for analyzing mass spec device based LFQ proteomics experiments at the [FGCZ](http://www.fgcz.ch/).
+The R package contains functions for analyzing mass spectrometry based LFQ experiments at the [FGCZ](http://www.fgcz.ch/).
 
 
 ## 1. System Requirements  

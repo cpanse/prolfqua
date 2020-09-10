@@ -1,4 +1,4 @@
-# prolfqua - for **Pro**teomics **L**abel **F**ree **Qua**ntification Services
+# prolfqua - for Proteomics Label Free Quantification Services
 
 ![prolfqua](inst/Figures/imgfile.png)
 

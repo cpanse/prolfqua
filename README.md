@@ -1,6 +1,4 @@
-# prolfqua - for Label Free Quantification Services
-
-prolfq is an acronym consisting of _pro_tein _l_abel _f_ree _qua_ntification
+# prolfqua - for **Pro**teomics **L**abel **F**ree **Qua**ntification Services
 
 ![prolfqua](inst/Figures/imgfile.png)
 

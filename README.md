@@ -1,4 +1,4 @@
-# prolfqua - for Proteomics Label Free Quantification Services
+# prolfqua - an R package for Proteomics Label Free Quantification Services
 
 ![prolfqua](inst/Figures/imgfile.png)
 

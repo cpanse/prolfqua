@@ -5,7 +5,6 @@
 The R package contains functions for analyzing mass spectrometry based LFQ experiments at the [FGCZ](http://www.fgcz.ch/).
 
 
-## 1. System Requirements  
 
 ## Motivation
 
@@ -27,6 +26,9 @@ It also implements various protein intensity summarization and inference methods
 
 To use `prolfqua` knowledge of the R regression model infrastructure is of advantage. Acknowledging, the complexity of the formula interface,  we provide an  MSstats emulator, where the model specification is generated based on the annotation file structure. 
 
+## 1. System Requirements  
+
+R 3.6 or higher.
 
 ## 1.1. Install R
 
@@ -34,7 +36,10 @@ a Windows/Linux/MacOSX x64 platform R 3.6.
 
 ```{r}
 # requires install.packages(c(BiocManager, 'remotes'))
-BiocManager::install('wolski/LFQService')
+
+remotes::install_github("wolski/prolfqua")
+# BiocManager::install('wolski/prolfqua')
+
 ```
 
 ### 1.2. Required packages

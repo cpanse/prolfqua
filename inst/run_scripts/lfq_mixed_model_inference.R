@@ -83,7 +83,7 @@ pepwriter$write_wide(ps$qc_path())
 
 
 message("######################## fit mixed #######################")
-memodel <- paste0(normalizedData$config$table$getWorkIntensity() , memodel)
+memodel <- paste0( normalizedData$config$table$getWorkIntensity() , memodel)
 modelFunction <- make_custom_model_lmer( memodel, report_columns = c("p.value", "p.value.adjusted"))
 
 

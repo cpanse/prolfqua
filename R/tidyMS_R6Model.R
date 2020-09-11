@@ -313,13 +313,14 @@ build_model <- function(data,
 #' bb <- contrast$ropeca()
 #' #View(bb)
 #'
-#'if(FALSE){
+#'#if(FALSE){
 #'  bb <- get_imputed_contrasts(D$data, D$config, Contr)
 #'  head(bb)
 #'  bm <- contrast$moderate()
 #'  head(bm)
 #'  cor(bb$estimate_median, bm$estimate)
-#'}
+#'#}
+#'
 Contrasts <- R6::R6Class(
   "Contrast",
   public = list(
@@ -444,7 +445,7 @@ Contrasts <- R6::R6Class(
                            common.legend = TRUE,
                            legend = "bottom")
 
-  fig <- ggpubr::annotate_figure(fig, bottom = text_grob(annot, size = 10))
+  fig <- ggpubr::annotate_figure(fig, bottom = ggpubr::text_grob(annot, size = 10))
   return(fig)
 }
 

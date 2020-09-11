@@ -635,7 +635,6 @@ LFQDataPlotter <- R6::R6Class(
       }else{
         LFQService::pairs_smooth( LFQService::toWideConfig(dataTransformed, config, as.matrix = TRUE)$data )
       }
-      NULL
     },
     #' @description
     #' plot of sample correlations

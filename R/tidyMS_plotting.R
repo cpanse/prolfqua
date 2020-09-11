@@ -179,7 +179,6 @@ plot_hierarchies_boxplot <- function(pdata,
   }
   p <- p + geom_boxplot()
   if ( beeswarm ) {
-    #p <- p + geom_point()
     p <- p + ggbeeswarm::geom_quasirandom(aes_string( color = color) , dodge.width = 0.7 )
   }
   if (!is.null( facet_grid_on ) && (facet_grid_on %in% colnames(pdata))) {

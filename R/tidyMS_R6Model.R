@@ -265,7 +265,7 @@ build_model <- function(data,
                         modelName = modelFunction$modelName){
 
   modellingResult <- LFQService:::model_analyse(
-    pepIntensity,
+    data,
     modelFunction,
     modelName = modelName,
     subject_Id = subject_Id)

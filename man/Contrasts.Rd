@@ -42,13 +42,14 @@ contrast$moderate()
 bb <- contrast$ropeca()
 #View(bb)
 
-if(FALSE){
+#if(FALSE){
  bb <- get_imputed_contrasts(D$data, D$config, Contr)
  head(bb)
  bm <- contrast$moderate()
  head(bm)
  cor(bb$estimate_median, bm$estimate)
-}
+#}
+
 }
 \seealso{
 \code{\link{moderated_p_limma_long}}

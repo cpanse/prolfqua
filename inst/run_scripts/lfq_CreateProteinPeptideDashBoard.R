@@ -14,14 +14,14 @@ pep <- pep %>% tidyr::unite("prot_pep", protein_Id, peptide_Id, remove=FALSE )
 
 file.copy("C:/Users/wolski/prog/LFQService/inst/plotly_reports/ProteinPeptideViewer.Rmd","ProteinPeptideViewer.Rmd")
 
-for(i in unique(pep$lhs)){
+for(i in unique(pep$lhs)) {
   print(i)
   proti <- prot %>%filter(lhs == i)
   pepi <- pep %>% filter(lhs == i)
   name <- make.names(i)
   par <- list(prot = proti, pep=pepi)
 
-  destname<-paste0("ProteinPeptideViewer", name, ".html" )
+  destname <-paste0("ProteinPeptideViewer", name, ".html" )
   rmarkdown::render("ProteinPeptideViewer.Rmd",
                     params=list(par=par),
                     output_file = file.path(outdir, destname))

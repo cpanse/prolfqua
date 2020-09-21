@@ -467,7 +467,11 @@ plot_pca <- function(data , config, add_txt = FALSE, plotly = FALSE){
   x <- ggplot(xx, aes(x = PC1, y = PC2,
                       color = !!sym(config$table$fkeysDepth()[1]),
                       text = !!sym(config$table$sampleName))) +
-    point + if (add_txt) {text}
+    point +
+    if (add_txt) {text}
+  if (!is.na(sh)) {
+    x <- x +  ggplot2::scale_shape_manual(values = 1:length(unique(xx[[sh]])))
+  }
   return(x)
 }
 

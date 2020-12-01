@@ -12,7 +12,7 @@ ps <- ProjectStructure$new(outpath = outpath,
                                       inputAnnotation = "../samples/p2558_05748_annotation.xlsx")
 
 
-
+ps$create()
 
 mqdata <- tidyMQ_Peptides_Config(ps$inputData)
 annotation <- readxl::read_xlsx(ps$inputAnnotation)

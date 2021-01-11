@@ -27,8 +27,8 @@ mqdata$config$table$factorDepth <- 2
 
 
 
-# specify model definition
-memodel <- "~ drug_ * SCI_  + (1|peptide_Id) + (1|sampleName)"
+# model definition
+model <- "~ drug_ * SCI_"
 Contrasts <- c("8wk_vs_1wk" = "SCI_8wk - SCI_1wk",
                "t_vs_v" = "drug_t - drug_v",
                "t_vs_v_given_8wk" = "`drug_t:SCI_8wk` - `drug_v:SCI_8wk`",
@@ -53,7 +53,7 @@ protintensity_fun <- medpolish_protein_quants( normalizedData$data,
 protdata <- protintensity_fun("unnest")
 xx <- protintensity_fun("plot")
 prefix <- "protein_"
-if (TRUE) {
+if (FALSE) {
   pdf(file.path(ps$qc_path(),paste0(prefix ,"inference_figures.pdf")))
   lapply(xx$plot, print)
   dev.off()
@@ -83,16 +83,17 @@ pepwriter$write_wide(ps$qc_path())
 
 
 message("######################## fit mixed #######################")
-memodel <- paste0(normalizedData$config$table$getWorkIntensity() , memodel)
-modelFunction <- make_custom_model_lmer( memodel, report_columns = c("p.value", "p.value.adjusted"))
+memodel <- paste0(protdata$config$table$getWorkIntensity() , model)
+modelFunction <- make_custom_model_lm( memodel)
 
 
 
 #source("c:/Users/wolski/prog/LFQService/R/tidyMS_application.R")
 if (TRUE) {
+  #debug(application_run_modelling_V2)
   resXXmixmodel <- application_run_modelling_V2(
-    data = normalizedData$data,
-    config = normalizedData$config,
+    data = protdata$data,
+    config = protdata$config,
     modelFunction = modelFunction,
     contrasts = Contrasts,
     modelling_dir = ps$modelling_path() )
@@ -117,7 +118,7 @@ relevantParameters <- list(ps = ps,
 )
 
 
-#LFQService::copy_mixed_model_analysis_script()
+LFQService::copy_mixed_model_analysis_script()
 file.copy("../rmarkdown/mixed_model_analysis_script_Report.Rmd",".",overwrite = TRUE)
 rmarkdown::render("mixed_model_analysis_script_Report.Rmd",
                   params = list(pars = relevantParameters),

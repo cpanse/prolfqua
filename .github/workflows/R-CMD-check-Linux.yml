@@ -44,7 +44,6 @@ jobs:
 
       - name: List files in home directory
         run: find ~/ -type f > files.txt
-
       - uses: actions/upload-artifact@v2
         with:
             name: files

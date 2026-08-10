@@ -433,7 +433,7 @@ ContrastsPlotter <- R6::R6Class(
         aes(x = !!sym(avg.abundance), y = !!sym(diff), text = !!sym("subject_id"), colour = !!sym(colour))
       ) +
         geom_point(alpha = 0.5) +
-        scale_colour_manual(values = c("black", "green")) +
+        scale_colour_manual(values = .contrast_colour_values(colour)) +
         facet_wrap(vars(!!sym(contrast)))
       if (FALSE) {
         ylab("log fold change (M)") + xlab("mean log intensities (A)")
@@ -466,7 +466,7 @@ ContrastsPlotter <- R6::R6Class(
           x,
           aes(x = !!sym(self$diff), y = !!sym(score), text = !!sym("subject_id"), colour = !!sym(colour))
         ) +
-          scale_colour_manual(values = c("black", "green")) +
+          scale_colour_manual(values = .contrast_colour_values(colour)) +
           geom_point(alpha = 0.5) +
           facet_wrap(vars(!!sym(self$contrast))) +
           geom_hline(yintercept = c(0), colour = 1) +

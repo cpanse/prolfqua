@@ -187,6 +187,13 @@ multigroup_volcano <- function(
   ifelse(values <= 0, zero_floor, values)
 }
 
+.contrast_colour_values <- function(colour) {
+  if (identical(colour, "estimate_type")) {
+    return(c(observed = "black", lod_imputed = "green", missing_fallback = "blue"))
+  }
+  c("black", "green", "blue", "red")
+}
+
 .multigroup_volcano <- function(
   data,
   effect = "fc",
@@ -213,7 +220,7 @@ multigroup_volcano <- function(
   }
   p <- p +
     scale_colour_manual(
-      values = c("black", "green", "blue", "red")
+      values = .contrast_colour_values(colour)
     )
   p <- p +
     facet_wrap(

@@ -95,6 +95,37 @@ test_that("volcano score names can differ from score columns", {
   expect_s3_class(volcano_plotly$FDR, "plotly")
 })
 
+test_that("estimate types use stable colours across contrast plots", {
+  contrast_df <- data.frame(
+    protein_Id = c("P1", "P2", "P3"),
+    contrast = "A_vs_B",
+    modelName = "lm_impute",
+    estimate_type = c("observed", "lod_imputed", "missing_fallback"),
+    diff = c(-2, 0, 2),
+    FDR = c(0.01, 0.1, 0.2),
+    statistic = c(-3, 0, 3),
+    avgAbd = c(10, 11, 12)
+  )
+  cp <- ContrastsPlotter$new(
+    contrast_df,
+    subject_id = "protein_Id",
+    volcano = list(list(score = "FDR", thresh = 0.1)),
+    score = list(list(score = "statistic", thresh = 2))
+  )
+  plots <- list(
+    cp$volcano()$FDR,
+    cp$ma_plot(rank = FALSE),
+    cp$score_plot()$statistic
+  )
+
+  expected <- c(observed = "black", lod_imputed = "green", missing_fallback = "blue")
+  for (plot in plots) {
+    built <- ggplot2::ggplot_build(plot)
+    colour_scale <- built$plot$scales$get_scales("colour")
+    expect_equal(colour_scale$map(names(expected)), unname(expected))
+  }
+})
+
 test_that("volcano_plotly shares the crosstalk group with linked tables", {
   # Regression: the DT results table uses crosstalk::SharedData group "BB" so
   # brushing the volcano highlights table rows (and vice versa). The plotly

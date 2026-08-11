@@ -537,7 +537,7 @@ build_model_limma_impute <- function(
 #' external weights enter the preliminary fit (so the trend estimation accounts
 #' for measurement precision) and are multiplied element-wise with the vooma
 #' weights for the final fit. See the voom integration notes in
-#' \code{TODO/TODO_limma_voom_integration.md} for the mathematical basis.
+#' \code{../TODO/prolfqua/Archive/TODO_limma_voom_integration.md} for the mathematical basis.
 #'
 #' @param lfqdata an \code{\link{LFQData}} object (aggregated to protein level)
 #' @param strategy output of \code{\link{strategy_limma}}

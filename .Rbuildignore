@@ -38,3 +38,15 @@ R/tidyMS_stanr\.R
 ^\.github$
 ^AGENTS\.md$
 ^CLAUDE\.md$
+__vignettes/Comparing2Groups.Rmd
+vignettes/ContrastFacade2Factor.Rmd
+vignettes/ContrastFacades.Rmd
+vignettes/Contrasts_from_factors.Rmd
+vignettes/CreatingConfigurations.Rmd
+vignettes/DEqMS_Moderation.Rmd
+vignettes/LimmaBackend.Rmd
+vignettes/limpa_example.Rmd
+vignettes/Modelling2Factors.Rmd
+vignettes/QualityControlAndSampleSizeEstimation.Rmd
+vignettes/SimulateData.Rmd
+vignettes/TestingMissingInference.Rmd

@@ -1,5 +1,79 @@
+# prolfqua 1.8.0
+
+This release removes about 3,600 lines (20%) of dead or duplicated code from `R/`. Everything removed had no callers in prolfqua or in the downstream packages (prolfquapp, prophosqua, prolfquappPTMreaders, prolfquasaint, prolfquabenchmark, ptm-pipeline).
+
+## Bug fixes
+
+- `filter_proteins_by_peptide_count()` and `nr_B_in_A()` are back, internal: the `filtered()` method of the saved `data_ionstar` dataset calls the filter, so its removal broke every caller of that dataset, prolfquapp's QC vignette among them. `nr_B_in_A(pdata, level_a, level_b)` only counts the children of each parent; the filter, `LFQData$filter_proteins_by_peptide_count()` and `nr_features_experiment()` count through it instead of each repeating the count.
+- `sigma()` for `MASS::rlm` fits took the square root twice. The `rlm` method's contrast `sigma` and all moderated statistics derived from it (`std.error`, `statistic`, `df`, `p.value`, `FDR`, confidence intervals) change; fold changes do not. On simulated data the moderated df drops from about 8,000 to about 25.
+- `moderated_p_limma(variance_floor = )` with `robust = FALSE` returned NA moderated p-values for rows above the floor, because the scalar prior df was padded with NA when the floored rows were set to `Inf`. This is the default path of the `binomial_nested` facade (`binomial_bound = TRUE`). Rows above the floor now keep the estimated prior df.
+- `merge_contrasts_results()`: when both inputs share a model name, `modelName` is now `<name>_prefer` / `<name>_add` instead of NA for every row.
+- `setup_analysis()` no longer fails when `sample_name` and `file_name` are the same column.
+
+## Behaviour changes
+
+- `options(prolfqua.vectorize)` is removed; contrasts always use the per-row path, which was already the default. Setting the option has no effect.
+- `ContrastsFirth`: proteins whose contrast fails are reported with the `contrasts_linfct()` warning listing the dropped protein IDs, instead of a message.
+- `ContrastsInterface` provides default `get_Plotter()` and `to_wide()` methods, so subclasses no longer need to implement them.
+- `estimate_intensity()` takes `method = "medpolish"` or `"rlm"` instead of a function in `.func`.
+- A facade's `config` field is filled on the first `get_config()` call; use `get_config()` rather than reading `$config`.
+- `center_to_reference_cfg()` always returns a median-centred copy (`summary` and `copy` removed). `scale_with_subset()` gains `colname` and loses the unused `get_scales`.
+- `plot_stat_violin_median()` checks `stat` with `match.arg()`, so the default `stat` now works (it used "CV" only when given explicitly).
+- `get_p_values_pbeta()` returns NA for an NA `n.obs` instead of stopping.
+- `script_copy_helper_vec()` reports the source path it actually copies from and warns once for a missing file; `find_package_file()` returns `NULL` invisibly when the file is not found.
+
+## Removed
+
+- Exported functions: `contrasts_fisher_exact()`, `contrasts_linfct_firth()`, `effective_contaminant_pattern()`, `effective_decoy_pattern()`, `filter_difference()`, `hierarchy_counts_sample()`, `is_singular_lm()`, `lfq_power_t_test_quantiles()`, `linfct_all_possible_contrasts()`, `linfct_factors_contrasts()`, `medpolish_estimate()`, `medpolish_estimate_df()`, `medpolish_estimate_dfconfig()`, `moderated_p_limma_long()`, `names_to_matrix()`, `nr_B_in_A()`, `plot_hierarchies_add_quantline()`, `plot_hierarchies_line_df()`, `plot_lmer_peptide_predictions()`, `remove_na_rows()`, `rlm_estimate()`, `rlm_estimate_dfconfig()`, `scatter_plotly()`, `summarize_stats_all()`, `tidy_to_wide()`, and the function forms of `filter_proteins_by_peptide_count()` and `remove_small_intensities()` (the `LFQData` methods of the same names are unchanged). `unregister_facade()` is no longer exported.
+- Replacements where one exists: sample sizes via `LFQDataStats$power_t_test_quantiles()` or `lfq_power_t_test_quantiles_V2()`; `summarize_stats(x, factor_key = NULL)` for `summarize_stats_all(x)`; the Summariser method `$hierarchy_counts_sample()`.
+- Datasets `data_checksummarizerobust` and `data_correlatedPeptideList`.
+- R6 methods: `LFQData$filter_difference()`, `$omit_na()`, `$contaminant_proportion()`; `LFQDataPlotter$write()`, `$write_pltly()`; `Model$write_anova_figures()`, `$write_coef_figures()` and the same on `ModelFirth`; `ContrastsPlotter$score_plotly()`, `$histogram_estimate()` (use `$histogram_diff()`); `AnalysisConfiguration$id_required()`.
+- Unused fields and arguments:
+  - strategies: `report_columns` (argument and field of all `strategy_*()` and `Strategy*` classes), `is_mixed`, `$model_fun(get_formula = )` (use `$formula`), `strategy_logistf(test = )`
+  - models and contrasts: `ModelLimma$design`, `$formula` and the matching `$new()` arguments; `Model$anova_df`, `ModelFirth$anova_df`; `AnovaExtractor$col_fdr`; `Contrasts$protein_annot`; `ContrastsMissing$global`, `$present`, `$minsd`
+  - plotting: `ContrastsPlotter` `prefix` and `protein_annot` fields and `$new(protein_annot = )`; `LFQDataPlotter` `file_paths_pdf`, `file_paths_html`
+  - other: `AnalysisConfiguration$hierarchy_keys(rev = )`; `setup_analysis(cc = , from_factors = )`; `plot_hierarchies_line(separate = )`; `transform_work_intensity(intensity_new_name = )`; `compute_pooled(method = )` and `poolvar(method = )` with the "V2" pooled variance; `sim_make_model_lmer(singular = )`; internal facade fields `ContrastsLMMissingFacade$missing_contrast`, `$merged`, `ContrastsLimpaNestedFacade$.lfqdata_nested`
+- `build_contrast_analysis()` no longer honours an undocumented `builder` field on facade registry entries.
+
+## Internal
+
+- Facades, strategies, aggregators and model classes now share base classes (`ContrastsFacadeBase$.setup()`, `StrategyBase`, `AggregatorBase`, plotting methods on `ModelInterface`); the four `build_model_limma*()` builders share one core. Class vectors of strategies and aggregators gain `StrategyBase` / `AggregatorBase`.
+
+# prolfqua 1.7.1
+
+- `MissingHelpers$get_lod()` no longer returns NA for data without groups seen once. It falls back to the partly observed groups with the fewest observations, and to the lowest group mean when every group is complete or empty. `build_model_impute()` therefore refits a protein missing a whole group in nearly complete data, where the NA LOD made the refit fail silently and left the protein unfitted.
+
+- New `impute_from_model()` fills the missing response cells of an `LFQData` with predictions from its per-protein `lm` models (from `build_model()` or `build_model_impute()`), leaving observed values unchanged, and reports per protein how many cells were observed and imputed and by which route (`complete`, `fitted`, `lod_refit` or `none`). Additive designs such as `~ group_ + pair` are supported; a model that is not lm-based is an error.
+
 # prolfqua 1.7.0
 
+- A mixed-model analysis (`lmer_nested`) no longer aborts partway through when a
+  single protein has no estimable contrast. Such a protein is now dropped with a
+  warning naming it, like a rank-deficient one, instead of failing the whole run
+  with `subscript out of bounds` from `lmerTest::contest()`.
+
+- A `ContrastConfiguration` built with `pvalue_col = NA_character_` now stores
+  `""` instead. HDF5 has no character NA, so a configuration serialized into an
+  AnnData artifact came back with `pvalue_col` set to the literal string `"NA"`
+  and `has_pvalue()` reported a p-value column that no backend had produced.
+  Backends without a p-value, such as SAINTexpress, are now read back
+  correctly.
+
+- The peptide count in simulated data is now called `nrPeptides`, matching the
+  name every reader in the ecosystem produces. It was the only place the column
+  was called `nr_peptides`, which meant code written against simulated data did
+  not work on real data -- and vice versa -- and downstream packages carried
+  aliases between the two spellings. The `nr_peptides` *option* (minimum
+  peptides per protein) is unchanged; only the data column is renamed.
+
+- New `list_to_ContrastConfiguration()` rebuilds a `ContrastConfiguration` from the plain list produced by
+  `R6_extract_values()`, so a serialized column-role mapping (e.g. from `SummarizedExperiment` metadata or an AnnData
+  `uns` entry) can be restored with its methods, such as `has_pvalue()`, intact.
+- Moderated t/Wald contrast tables now report the posterior contrast standard error in `std.error`, while
+  `std.error.unmoderated` and `df.unmoderated` preserve the pre-moderation test inputs for downstream comparisons.
+  Moderated confidence intervals now use the contrast scale rather than the residual-variance scale; this corrects
+  intervals that were too wide when the raw contrast scale factor was below one and too narrow when it was above one.
+  The separate infinite-prior-df fallback is unchanged and remains a distinct follow-up decision.
 - `main_effect_contrasts()` now emits averaging contrasts with a top-level `LHS - RHS`, making its output directly valid for the stricter contrast parser.
 - Added the `binomial_nested` facade for nested LFQ data. It reuses the Firth backend's completed peptide-detection
   representation, fits protein-by-sample detected/undetected peptide counts with a quasibinomial GLM, and reports

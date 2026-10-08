@@ -193,31 +193,8 @@ build_model_impute <- function(
   borrow_method <- match.arg(borrow_method)
   df_method <- match.arg(df_method)
   on_misalign <- match.arg(on_misalign)
-  subject_id <- lfqdata$subject_id()
-  response <- lfqdata$response()
-
-  modelling_result <- model_analyse(
-    lfqdata$data_long(),
-    model_strategy,
-    model_name = model_name,
-    subject_id = subject_id
-  )
-
-  if (is.null(lod)) {
-    mh <- MissingHelpers$new(lfqdata$data_long(), lfqdata$get_config())
-    lod <- mh$get_lod()
-  }
-
-  # Build sample template from annotation columns only (fileName, sampleName,
-  # factors). These don't vary per protein, so distinct() gives one row per sample.
-  # Value columns like nr_children are protein-specific and come from dat via join.
-  annotation_cols <- intersect(
-    lfqdata$get_config()$annotation_vars(),
-    colnames(lfqdata$data_long())
-  )
-  sample_template <- lfqdata$data_long() |>
-    dplyr::select(dplyr::all_of(annotation_cols)) |>
-    dplyr::distinct()
+  model <- build_model(lfqdata, model_strategy, model_name = model_name)
+  lod <- .resolve_lod(lod, lfqdata)
 
   # Resolve nr_children column name (used as lm weights; must be filled for imputed rows)
   nr_children_col <- lfqdata$nr_children_col()
@@ -225,23 +202,190 @@ build_model_impute <- function(
     nr_children_col <- NULL
   }
 
-  modelling_result$model_df <- impute_refit_singular(
-    modelling_result$model_df,
+  model$model_df <- impute_refit_singular(
+    model$model_df,
     model_strategy,
     lod = lod,
-    response = response,
-    sample_template = sample_template,
+    response = lfqdata$response(),
+    sample_template = .sample_template(lfqdata),
     borrow_method = borrow_method,
     df_method = df_method,
     nr_children_col = nr_children_col,
     on_misalign = on_misalign
   )
+  model
+}
 
-  return(Model$new(
-    model_df = modelling_result$model_df,
-    model_strategy = model_strategy,
-    model_name = modelling_result$model_name,
-    subject_id = subject_id
+# The limit of detection: `lod` if given, else estimated from the data.
+.resolve_lod <- function(lod, lfqdata) {
+  if (!is.null(lod)) {
+    return(lod)
+  }
+  MissingHelpers$new(lfqdata$data_long(), lfqdata$get_config())$get_lod()
+}
+
+# One row per sample holding the annotation columns (file, sample, factors), which do not vary per
+# subject. Subject-specific value columns such as nr_children are not included.
+.sample_template <- function(lfqdata) {
+  data <- lfqdata$data_long()
+  data |>
+    dplyr::select(dplyr::all_of(intersect(lfqdata$get_config()$annotation_vars(), colnames(data)))) |>
+    dplyr::distinct()
+}
+
+
+#' Fill missing responses with predictions from per-subject linear models
+#'
+#' Completes the data to every subject x every sample and fills each missing
+#' response cell with \code{predict()} of that subject's fitted \code{lm}, on the
+#' response scale. Observed values are left unchanged. The imputed values carry
+#' no noise.
+#'
+#' Each subject gets one route, checked in this order:
+#' \describe{
+#'   \item{complete}{no missing cell.}
+#'   \item{lod_refit}{the subject was refitted at the LOD by
+#'     \code{\link{build_model_impute}} (\code{model_df$imputed}); that fit's
+#'     predictions fill the missing cells.}
+#'   \item{fitted}{the observed-data fit has no NA coefficient and knows every
+#'     factor level of the missing cells; its predictions fill them.}
+#'   \item{none}{no usable fit; the missing cells stay NA.}
+#' }
+#'
+#' @param model a \code{\link{Model}} with \code{lm} fits, as returned by
+#'   \code{\link{build_model}} or \code{\link{build_model_impute}}
+#' @param lfqdata the \code{\link{LFQData}} the model was fitted on (same
+#'   response and subject_id)
+#' @return list with \code{lfqdata}, a new \code{\link{LFQData}} holding every
+#'   subject x sample row with missing responses filled, and \code{summary}, a
+#'   tibble with the subject_id columns and \code{n_observed}, \code{n_imputed}
+#'   and \code{route} per subject
+#' @family modelling
+#' @seealso \code{\link{build_model_impute}}
+#' @export
+#' @examples
+#' istar <- sim_lfq_data_protein_config(Nprot = 30, weight_missing = 0.5)
+#' lfqdata <- LFQData$new(istar$data, istar$config)
+#' strat <- strategy_lm(paste(lfqdata$response(), "~ group_"))
+#' mod <- build_model_impute(lfqdata, strat)
+#' res <- impute_from_model(mod, lfqdata)
+#' table(res$summary$route)
+#' n_missing <- function(x) sum(is.na(x$data_long()$abundance))
+#' stopifnot(n_missing(res$lfqdata) <= n_missing(lfqdata))
+impute_from_model <- function(model, lfqdata) {
+  subject_id <- model$subject_id
+  if (!identical(subject_id, lfqdata$subject_id())) {
+    stop(
+      "Model subject_id (",
+      paste(subject_id, collapse = ", "),
+      ") differs from lfqdata subject_id (",
+      paste(lfqdata$subject_id(), collapse = ", "),
+      ").",
+      call. = FALSE
+    )
+  }
+  model_df <- dplyr::ungroup(model$model_df)
+  fits <- model_df$linear_model[model_df$has_model_fit]
+  is_lm <- vapply(fits, inherits, logical(1), what = "lm")
+  if (!all(is_lm)) {
+    stop(
+      "impute_from_model() needs lm fits, but model '",
+      model$model_name,
+      "' has fits of class '",
+      class(fits[[which(!is_lm)[1]]])[1],
+      "'.",
+      call. = FALSE
+    )
+  }
+  response <- lfqdata$response()
+  model_response <- deparse(model$model_strategy$formula[[2]])
+  if (!identical(model_response, response)) {
+    stop("Model response '", model_response, "' differs from lfqdata response '", response, "'.", call. = FALSE)
+  }
+
+  fit_table <- model_df |>
+    dplyr::select(dplyr::all_of(c(subject_id, "linear_model", "has_model_fit"))) |>
+    dplyr::mutate(imputed = if ("imputed" %in% colnames(model_df)) model_df$imputed else FALSE)
+
+  data <- lfqdata$data_long()
+  sample_template <- .sample_template(lfqdata)
+  row_keys <- intersect(c(subject_id, lfqdata$isotope_label()), colnames(data))
+  completed <- data |>
+    dplyr::select(dplyr::all_of(row_keys)) |>
+    dplyr::distinct() |>
+    tidyr::crossing(sample_template) |>
+    dplyr::left_join(data, by = c(row_keys, colnames(sample_template)))
+
+  per_subject <- completed |>
+    dplyr::group_by(!!!syms(subject_id)) |>
+    tidyr::nest() |>
+    dplyr::ungroup() |>
+    dplyr::left_join(fit_table, by = subject_id)
+  if (anyNA(per_subject$has_model_fit)) {
+    stop(
+      "Model '",
+      model$model_name,
+      "' has no row for ",
+      sum(is.na(per_subject$has_model_fit)),
+      " subject(s) of lfqdata.",
+      call. = FALSE
+    )
+  }
+
+  filled <- purrr::pmap(
+    list(per_subject$data, per_subject$linear_model, per_subject$has_model_fit, per_subject$imputed),
+    .fill_missing_response,
+    response = response
+  )
+
+  summary <- per_subject |>
+    dplyr::select(dplyr::all_of(subject_id)) |>
+    dplyr::mutate(
+      n_observed = vapply(filled, `[[`, integer(1), "n_observed"),
+      n_imputed = vapply(filled, `[[`, integer(1), "n_imputed"),
+      route = vapply(filled, `[[`, character(1), "route")
+    )
+  imputed_data <- per_subject |>
+    dplyr::select(dplyr::all_of(subject_id)) |>
+    dplyr::mutate(data = lapply(filled, `[[`, "data")) |>
+    tidyr::unnest("data") |>
+    dplyr::select(dplyr::all_of(colnames(data)))
+
+  list(
+    lfqdata = LFQData$new(imputed_data, lfqdata$get_config(), prefix = lfqdata$prefix),
+    summary = summary
+  )
+}
+
+.fill_missing_response <- function(rows, fit, has_model_fit, imputed, response) {
+  missing <- is.na(rows[[response]])
+  route <- if (!any(missing)) {
+    "complete"
+  } else if (isTRUE(imputed)) {
+    "lod_refit"
+  } else if (has_model_fit && !anyNA(stats::coefficients(fit)) && .fit_knows_levels(fit, rows[missing, ])) {
+    "fitted"
+  } else {
+    "none"
+  }
+  if (route %in% c("fitted", "lod_refit")) {
+    rows[[response]][missing] <- stats::predict(fit, newdata = rows[missing, ])
+  }
+  list(
+    data = rows,
+    n_observed = sum(!missing),
+    n_imputed = sum(missing & !is.na(rows[[response]])),
+    route = route
+  )
+}
+
+# predict.lm() fails on a factor level the fit never saw, e.g. a pair whose
+# samples are all missing; such a subject has no usable fit.
+.fit_knows_levels <- function(fit, newdata) {
+  all(vapply(
+    names(fit$xlevels),
+    function(v) all(newdata[[v]] %in% fit$xlevels[[v]]),
+    logical(1)
   ))
 }
 
@@ -504,14 +648,11 @@ impute_refit_singular <- function(
     return(model_df)
   }
 
-  borrowed <- if (on_misalign == "fail") {
-    tryCatch(
-      compute_borrowed_variance(model_df, method = borrow_method, on_misalign = on_misalign),
-      prolfqua_borrow_failed = function(e) NULL
-    )
-  } else {
-    compute_borrowed_variance(model_df, method = borrow_method, on_misalign = on_misalign)
-  }
+  # Only on_misalign = "fail" signals prolfqua_borrow_failed.
+  borrowed <- tryCatch(
+    compute_borrowed_variance(model_df, method = borrow_method, on_misalign = on_misalign),
+    prolfqua_borrow_failed = function(e) NULL
+  )
   # When full-covariance borrowing is impossible (e.g. rfit, which has no
   # lm-style cov.unscaled to fall back to), skip the rescue: leave the
   # failed/singular proteins untouched so they surface in get_missing()
@@ -645,26 +786,6 @@ impute_refit_singular <- function(
 
 # Fit the models to data ----
 
-#' check if lm model is singular
-#' @keywords internal
-#' @family modelling
-#' @export
-#' @examples
-#' fit <- stats::lm(Sepal.Length ~ Species, data = iris)
-#' is_singular_lm(fit)
-#'
-is_singular_lm <- function(m) {
-  has_na <- any(is.na(coefficients(m)))
-  if (has_na) {
-    return(TRUE)
-  } else {
-    if (df.residual(m) >= 2) {
-      return(FALSE)
-    }
-    return(TRUE)
-  }
-}
-
 #' retrieve complete models.
 #' @keywords internal
 #' @family modelling
@@ -717,8 +838,6 @@ model_analyse <- function(
     dplyr::group_by(!!!syms(subject_id)) |>
     tidyr::nest()
 
-  lmermodel <- "linear_model"
-
   # The strategy `model_fun()`s tick `pb` at fit *start* (their existing
   # duck-typed contract). We keep that contract untouched -- this is the core
   # path of every facade -- and only swap the reporter object. With the
@@ -726,76 +845,28 @@ model_analyse <- function(
   # log heartbeat.
   pb <- .make_progress(nrow(nested_proteins), label = label, reporter = progress)
   model_proteins <- nested_proteins |>
-    dplyr::mutate(!!lmermodel := purrr::map(data, model_strategy$model_fun, pb = pb))
+    dplyr::mutate(linear_model = purrr::map(data, model_strategy$model_fun, pb = pb))
 
-  model_proteins <- model_proteins |>
-    dplyr::mutate(
-      !!"has_model_fit" := purrr::map_lgl(!!sym(lmermodel), function(x) {
-        !is.character(x)
-      })
-    )
-
-  count_coef <- function(x) {
-    cc <- coefficients(x)
-    if (inherits(cc, "numeric")) length(cc) else ncol(cc[[1]])
+  # Per-fit summaries; NA for failed fits (the error message is stored in place of the model).
+  fits <- model_proteins$linear_model
+  has_fit <- !purrr::map_lgl(fits, is.character)
+  per_fit <- function(map2_typed, fun, na) map2_typed(fits, has_fit, function(m, ok) if (ok) fun(m) else na)
+  count_coef <- function(m, not_na = FALSE) {
+    cc <- coefficients(m)
+    if (!inherits(cc, "numeric")) {
+      ncol(cc[[1]])
+    } else if (not_na) {
+      sum(!is.na(cc))
+    } else {
+      length(cc)
+    }
   }
-
-  count_coef_not_NA <- function(x) {
-    cc <- coefficients(x)
-    if (inherits(cc, "numeric")) sum(!is.na(cc)) else ncol(cc[[1]])
-  }
-
-  model_proteins <- model_proteins |>
-    dplyr::mutate(
-      isSingular = purrr::map2_lgl(
-        !!sym(lmermodel),
-        .data$has_model_fit,
-        function(m, ok) if (ok) model_strategy$isSingular(m) else NA
-      ),
-      df.residual = purrr::map2_dbl(
-        !!sym(lmermodel),
-        .data$has_model_fit,
-        function(m, ok) if (ok) model_strategy$df_residual(m) else NA_real_
-      ),
-      sigma = purrr::map2_dbl(
-        !!sym(lmermodel),
-        .data$has_model_fit,
-        function(m, ok) if (ok) model_strategy$sigma(m) else NA_real_
-      ),
-      nr_coef = purrr::map2_int(
-        !!sym(lmermodel),
-        .data$has_model_fit,
-        function(m, ok) if (ok) count_coef(m) else NA_integer_
-      ),
-      nr_coef_not_NA = purrr::map2_int(
-        !!sym(lmermodel),
-        .data$has_model_fit,
-        function(m, ok) if (ok) count_coef_not_NA(m) else NA_integer_
-      )
-    )
+  model_proteins$has_model_fit <- has_fit
+  model_proteins$isSingular <- per_fit(purrr::map2_lgl, model_strategy$isSingular, NA)
+  model_proteins$df.residual <- per_fit(purrr::map2_dbl, model_strategy$df_residual, NA_real_)
+  model_proteins$sigma <- per_fit(purrr::map2_dbl, model_strategy$sigma, NA_real_)
+  model_proteins$nr_coef <- per_fit(purrr::map2_int, count_coef, NA_integer_)
+  model_proteins$nr_coef_not_NA <- per_fit(purrr::map2_int, function(m) count_coef(m, not_na = TRUE), NA_integer_)
 
   return(list(model_df = model_proteins, model_name = model_name))
-}
-
-
-# visualize lmer modelling results ----
-
-#' Plot prdictions
-#' @export
-#' @family modelling
-#' @keywords internal
-#' @examples
-#' m <- sim_make_model_lmer()
-#' plot_lmer_peptide_predictions(m, intensity = "abundance")
-#' m <- sim_make_model_lmer("interaction")
-#' plot_lmer_peptide_predictions(m, intensity = "abundance")
-plot_lmer_peptide_predictions <- function(m, intensity = "abundance") {
-  data <- m@frame
-  data$prediction <- predict(m)
-  interaction_columns <- intersect(attributes(terms(m))$term.labels, colnames(data))
-  data <- make_interaction_column(data, interaction_columns, sep = ":")
-  gg <- ggplot(data, aes(x = .data$interaction, y = !!sym(intensity))) + geom_point()
-  gg <- gg + geom_point(aes(x = .data$interaction, y = .data$prediction), color = 2) + facet_wrap(~peptide_Id)
-  gg <- gg + theme(axis.text.x = element_text(angle = -90, hjust = 0))
-  return(gg)
 }

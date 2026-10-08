@@ -32,13 +32,13 @@ test_that("moderated_p_deqms works on simulated data", {
   contrast_result <- contrast$get_contrasts(all = FALSE)
 
   # Add count column
-  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nr_peptides"))) |>
+  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nrPeptides"))) |>
     dplyr::distinct()
   contrast_result <- dplyr::inner_join(contrast_result, count_df, by = istar$config$hierarchy_keys_depth())
-  contrast_result$nr_peptides <- pmax(contrast_result$nr_peptides, 1)
+  contrast_result$nrPeptides <- pmax(contrast_result$nrPeptides, 1)
 
   # Test single-group moderation
-  result <- moderated_p_deqms(contrast_result, count_col = "nr_peptides")
+  result <- moderated_p_deqms(contrast_result, count_col = "nrPeptides")
 
   expect_true("moderated.statistic" %in% colnames(result))
   expect_true("moderated.p.value" %in% colnames(result))
@@ -46,6 +46,7 @@ test_that("moderated_p_deqms works on simulated data", {
   expect_true("moderated.var.prior" %in% colnames(result))
   expect_true("moderated.df.prior" %in% colnames(result))
   expect_true("moderated.df.total" %in% colnames(result))
+  expect_true("moderated.std.error" %in% colnames(result))
   expect_true("moderated.conf.low" %in% colnames(result))
   expect_true("moderated.conf.high" %in% colnames(result))
 
@@ -55,6 +56,11 @@ test_that("moderated_p_deqms works on simulated data", {
 
   # Prior variance should vary per protein (count-dependent)
   expect_true(length(unique(result$moderated.var.prior)) > 1)
+  expect_equal(
+    result$moderated.conf.high - result$diff,
+    -stats::qt(0.025, df = result$moderated.df.total) * result$moderated.std.error,
+    tolerance = 1e-12
+  )
 })
 
 test_that("ContrastsModeratedDEqMS works end-to-end", {
@@ -69,13 +75,13 @@ test_that("ContrastsModeratedDEqMS works end-to-end", {
   contrast <- Contrasts$new(mod, Contr)
 
   # Build count_df from data
-  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nr_peptides"))) |>
+  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nrPeptides"))) |>
     dplyr::distinct()
 
   deqms <- ContrastsModeratedDEqMS$new(
     contrast,
     count_df = count_df,
-    count_column = "nr_peptides"
+    count_column = "nrPeptides"
   )
 
   # get_contrasts returns expected columns
@@ -84,6 +90,10 @@ test_that("ContrastsModeratedDEqMS works end-to-end", {
   expect_true(all(c("diff", "p.value", "FDR", "sigma", "statistic", "df", "conf.low", "conf.high") %in% colnames(x)))
   expect_true(all(x$p.value > 0 & x$p.value <= 1))
   expect_true(all(x$FDR >= 0 & x$FDR <= 1))
+  raw <- contrast$get_contrasts()
+  expect_equal(x$std.error.unmoderated, raw$std.error)
+  expect_equal(x$df.unmoderated, raw$df)
+  expect_equal(x$statistic, x$diff / x$std.error, tolerance = 1e-12)
 
   # modelName passes through the wrapped model identity unchanged (no _DEqMS
   # suffix); DEqMS moderation is documented in the methods text. estimate_type
@@ -129,13 +139,13 @@ test_that("ContrastsModeratedDEqMS works with multiple contrasts", {
   )
   contrast <- Contrasts$new(mod, Contr)
 
-  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nr_peptides"))) |>
+  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nrPeptides"))) |>
     dplyr::distinct()
 
   deqms <- ContrastsModeratedDEqMS$new(
     contrast,
     count_df = count_df,
-    count_column = "nr_peptides"
+    count_column = "nrPeptides"
   )
 
   x <- deqms$get_contrasts()
@@ -153,13 +163,13 @@ test_that("merge_contrasts_results works with ContrastsModeratedDEqMS", {
   mod <- build_model(lProt, modelFunction)
   contrast <- Contrasts$new(mod, Contr)
 
-  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nr_peptides"))) |>
+  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nrPeptides"))) |>
     dplyr::distinct()
 
   deqms <- ContrastsModeratedDEqMS$new(
     contrast,
     count_df = count_df,
-    count_column = "nr_peptides"
+    count_column = "nrPeptides"
   )
 
   csi <- ContrastsMissing$new(lProt, contrasts = Contr)
@@ -184,13 +194,13 @@ test_that("ContrastsModeratedDEqMS volcano renders", {
   Contr <- c("AvsCtrl" = "group_A - group_Ctrl")
   contrast <- Contrasts$new(mod, Contr)
 
-  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nr_peptides"))) |>
+  count_df <- dplyr::select(istar$data, dplyr::all_of(c(istar$config$hierarchy_keys_depth(), "nrPeptides"))) |>
     dplyr::distinct()
 
   deqms <- ContrastsModeratedDEqMS$new(
     contrast,
     count_df = count_df,
-    count_column = "nr_peptides"
+    count_column = "nrPeptides"
   )
 
   pl <- deqms$get_Plotter()

@@ -28,6 +28,8 @@ test_that("Contrasts (Wald test)", {
   x <- contrastX$get_contrasts()
   expect_s3_class(x, "data.frame")
   expect_true(all(c("contrast", "diff", "statistic", "p.value", "FDR") %in% colnames(x)))
+  expect_equal(x$std.error.unmoderated, x$std.error)
+  expect_equal(x$df.unmoderated, x$df)
   expect_true(all(x$p.value > 0 & x$p.value < 1))
   expect_true(all(x$FDR > 0 & x$FDR <= 1))
 
@@ -61,9 +63,23 @@ test_that("ContrastsModerated", {
   contrast <- Contrasts$new(mod, Contr)
   moderated <- ContrastsModerated$new(contrast)
 
+  raw <- contrast$get_contrasts()
   x <- moderated$get_contrasts()
   expect_s3_class(x, "data.frame")
   expect_true(all(c("diff", "p.value", "FDR") %in% colnames(x)))
+  expect_equal(x$std.error.unmoderated, raw$std.error)
+  expect_equal(x$df.unmoderated, raw$df)
+  expect_equal(x$statistic, x$diff / x$std.error, tolerance = 1e-12)
+  expect_equal(
+    x$p.value,
+    2 * stats::pt(abs(x$statistic), df = x$df, lower.tail = FALSE),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    x$conf.high - x$diff,
+    -stats::qt(0.025, df = x$df) * x$std.error,
+    tolerance = 1e-12
+  )
 
   tw <- moderated$to_wide()
   expect_s3_class(tw, "data.frame")
@@ -112,6 +128,8 @@ test_that("ContrastsMissing", {
   res <- csi$get_contrasts()
   expect_s3_class(res, "data.frame")
   expect_true(all(c("diff", "p.value", "FDR") %in% colnames(res)))
+  expect_equal(res$std.error.unmoderated, res$std.error)
+  expect_equal(res$df.unmoderated, res$df)
   expect_equal(sum(is.na(res$p.value)), 0)
 
   cs <- csi$get_contrast_sides()
@@ -195,6 +213,27 @@ test_that("ContrastsTable provides rank and ORA input tables", {
   expect_equal(ora_down$protein_Id, c("P2", "P5"))
 })
 
+test_that("merge_contrasts_results labels rows when both inputs share a model name", {
+  prefer_df <- data.frame(
+    protein_Id = c("P1", "P2"),
+    contrast = "A_vs_B",
+    modelName = "lm",
+    diff = c(1, 2),
+    p.value = c(0.01, 0.2),
+    FDR = c(0.02, 0.2),
+    statistic = c(3, NA)
+  )
+  add_df <- transform(prefer_df, diff = c(1.1, 2.1), statistic = c(2.8, 2.5))
+  prefer <- ContrastsTable$new(prefer_df, subject_id = "protein_Id", model_name = "lm")
+  add <- ContrastsTable$new(add_df, subject_id = "protein_Id", model_name = "lm")
+
+  merged <- merge_contrasts_results(prefer, add)$merged
+  res <- merged$get_contrasts()
+  expect_equal(as.character(res$modelName), c("lm_prefer", "lm_add"))
+  expect_equal(res$diff, c(1, 2.1))
+  expect_equal(merged$model_name, "lm_prefer_lm_add")
+})
+
 test_that("ContrastsFirth and ContrastsFirthFacade", {
   istar <- sim_lfq_data_protein_config(Nprot = 20, with_missing = TRUE, weight_missing = 0.5, seed = 9)
   lfqdata <- LFQData$new(istar$data, istar$config)
@@ -259,4 +298,17 @@ test_that("ContrastsFirth drops failed logistf fits before contrasts", {
   expect_s3_class(res, "data.frame")
   expect_true(all(c("protein_Id", "contrast", "diff", "p.value", "FDR") %in% colnames(res)))
   expect_false(any(is.na(res$protein_Id)))
+})
+
+test_that("compute_lmer_contrast reports an empty contrast matrix instead of failing", {
+  # A protein whose model carries none of the requested contrast coefficients
+  # leaves `linfct_matrix_contrasts()` with a 0-row matrix. lmerTest::contest()
+  # indexes 1:nrow(L) and used to abort the whole run on it.
+  mb <- sim_make_model_lmer("interaction")
+  linfct <- linfct_from_model(mb)$linfct_factors
+  empty <- linfct[0, , drop = FALSE]
+
+  expect_warning(res <- compute_lmer_contrast(mb, empty), "No estimable contrast")
+  expect_true(is.logical(res))
+  expect_true(is.na(res))
 })

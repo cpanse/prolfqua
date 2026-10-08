@@ -39,6 +39,7 @@ find_d0_deqms <- function(mean_myfct) {
 #'   sigma = c(0.25, 0.32, 0.28, 0.40, 0.35),
 #'   df = rep(6, 5),
 #'   statistic = c(2.1, -1.8, 0.5, 3.0, -2.2),
+#'   std.error = c(0.8 / 2.1, 0.6 / 1.8, 0.2 / 0.5, 1.2 / 3.0, 0.9 / 2.2),
 #'   diff = c(0.8, -0.6, 0.2, 1.2, -0.9),
 #'   count = c(2, 3, 4, 6, 8)
 #' )
@@ -83,35 +84,32 @@ moderated_p_deqms <- function(mm, count_col, df = "df", estimate = "diff", loess
 
   d0 <- find_d0_deqms(mean_myfct)
 
-  # Count-specific prior variance
+  # Count-specific prior variance and posterior variance
   if (is.finite(d0)) {
     s02 <- exp(egpred + digamma(d0 / 2) - log(d0 / 2))
-  } else {
-    s02 <- exp(fitted_logvar)
-  }
-
-  # Posterior variance
-  if (is.finite(d0)) {
     var_post <- (d0 * s02 + df_res * mm$sigma^2) / (d0 + df_res)
     df_total <- d0 + df_res
   } else {
+    s02 <- exp(fitted_logvar)
     var_post <- s02
     df_total <- df_res
   }
 
   # Moderated statistics
+  moderated_se <- mm$std.error * sqrt(var_post) / mm$sigma
   moderated_t <- mm$statistic * mm$sigma / sqrt(var_post)
   moderated_p <- 2 * pt(abs(moderated_t), df = df_total, lower.tail = FALSE)
 
-  # Confidence intervals (same pattern as moderated_p_limma)
+  # Confidence intervals on the contrast scale
   prqt <- -qt((1 - confint) / 2, df = df_total)
-  conf_low <- mm[[estimate]] - prqt * sqrt(var_post)
-  conf_high <- mm[[estimate]] + prqt * sqrt(var_post)
+  conf_low <- mm[[estimate]] - prqt * moderated_se
+  conf_high <- mm[[estimate]] + prqt * moderated_se
 
   # Attach results (same naming convention as moderated_p_limma)
   mm$moderated.var.prior <- s02
   mm$moderated.df.prior <- d0
   mm$moderated.var.post <- var_post
+  mm$moderated.std.error <- moderated_se
   mm$moderated.statistic <- moderated_t
   mm$moderated.df.total <- df_total
   mm$moderated.p.value <- moderated_p
@@ -142,6 +140,7 @@ moderated_p_deqms <- function(mm, count_col, df = "df", estimate = "diff", loess
 #'   sigma = rep(c(0.25, 0.32, 0.28, 0.40, 0.35), 2),
 #'   df = rep(6, 10),
 #'   statistic = rep(c(2.1, -1.8, 0.5, 3.0, -2.2), 2),
+#'   std.error = rep(c(0.8 / 2.1, 0.6 / 1.8, 0.2 / 0.5, 1.2 / 3.0, 0.9 / 2.2), 2),
 #'   diff = rep(c(0.8, -0.6, 0.2, 1.2, -0.9), 2),
 #'   count = rep(c(2, 3, 4, 6, 8), 2)
 #' )
@@ -254,12 +253,12 @@ moderated_p_deqms_long <- function(mm, count_col, group_by_col = "contrast", est
 #'
 #' # Build count_df from config
 #' count_df <- dplyr::select(protIntensity,
-#'   dplyr::all_of(c(config$hierarchy_keys_depth(), "nr_peptides"))) |>
+#'   dplyr::all_of(c(config$hierarchy_keys_depth(), "nrPeptides"))) |>
 #'   dplyr::distinct()
 #'
 #' deqms <- ContrastsModeratedDEqMS$new(contrast,
 #'   count_df = count_df,
-#'   count_column = "nr_peptides")
+#'   count_column = "nrPeptides")
 #'
 #' bb <- deqms$get_contrasts()
 #' stopifnot(all(c("diff", "p.value", "FDR", "sigma") %in% colnames(bb)))
@@ -375,45 +374,9 @@ ContrastsModeratedDEqMS <- R6::R6Class(
       ))
 
       return(contrast_result)
-    },
-    #' @description
-    #' get \code{\link{ContrastsPlotter}}
-    #' @param fc_threshold fold change threshold to show in plots
-    #' @param fdr_threshold FDR threshold to show in plots
-    get_Plotter = function(
-      fc_threshold = 1,
-      fdr_threshold = 0.1
-    ) {
-      contrast_result <- self$get_contrasts()
-      res <- ContrastsPlotter$new(
-        contrast_result,
-        subject_id = self$subject_id,
-        fcthresh = fc_threshold,
-        volcano = list(list(score = "FDR", thresh = fdr_threshold)),
-        histogram = list(
-          list(score = "p.value", xlim = c(0, 1, 0.05)),
-          list(score = "FDR", xlim = c(0, 1, 0.05))
-        ),
-        score = list(list(score = "statistic", thresh = 5)),
-        modelName = "modelName",
-        diff = "diff",
-        contrast = "contrast"
-      )
-      return(res)
-    },
-    #' @description
-    #' convert to wide format
-    #' @param columns value column default p.value, FDR, statistic
-    #' @return data.frame
-    to_wide = function(columns = c("p.value", "FDR", "statistic")) {
-      contrast_minimal <- self$get_contrasts()
-      contrasts_wide <- pivot_model_contrasts_to_wide(
-        contrast_minimal,
-        subject_id = self$subject_id,
-        columns = c("diff", columns),
-        contrast = "contrast"
-      )
-      return(contrasts_wide)
     }
+  ),
+  private = list(
+    volcano_scores = "FDR"
   )
 )

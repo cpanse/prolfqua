@@ -50,6 +50,7 @@ Other configuration:
 \code{\link{INTERNAL_FUNCTIONS_BY_FAMILY}},
 \code{\link{R6_extract_values}()},
 \code{\link{complete_cases}()},
+\code{\link{list_to_ContrastConfiguration}()},
 \code{\link{make_interaction_column}()},
 \code{\link{make_reduced_hierarchy_config}()},
 \code{\link{sample_subset}()},
@@ -73,8 +74,9 @@ is \code{diff}, for SAINT \code{log2_EFCs}}
 
 \item{\code{score_col}}{column with the per-contrast test statistic}
 
-\item{\code{pvalue_col}}{column with the raw p-value, or \code{NA_character_}
-for backends that do not produce one (e.g. SAINTexpress)}
+\item{\code{pvalue_col}}{column with the raw p-value, or \code{""} for backends
+that do not produce one (e.g. SAINTexpress). \code{NA_character_} is
+accepted by the constructor and stored as \code{""}.}
 
 \item{\code{fdr_col}}{column with the FDR / BFDR / adjusted p-value}
 
@@ -139,7 +141,8 @@ fields of the same name.
 
 \item{\code{score_col}}{test-statistic column}
 
-\item{\code{pvalue_col}}{raw p-value column, or \code{NA_character_}}
+\item{\code{pvalue_col}}{raw p-value column, or \code{""} / \code{NA_character_}
+when the backend produces none}
 
 \item{\code{fdr_col}}{FDR / adjusted-p column}
 

@@ -1,7 +1,7 @@
 Package: prolfqua
 Type: Package
 Title: Proteomics Label Free Quantification
-Version: 0.99.1
+Version: 0.99.2
 Authors@R: c(
     person("Witold", "Wolski",
         email = "witold.wolski@fgcz.uzh.ch",
@@ -57,6 +57,7 @@ Imports:
     withr
 Suggests:
     BiocCheck,
+    BiocStyle,
     corrplot,
     covr,
     crosstalk,
@@ -81,5 +82,5 @@ Suggests:
 RoxygenNote: 7.3.3
 Roxygen: list(r6 = TRUE)
 Depends: 
-    R (>= 4.5.0)
-biocViews: MassSpectrometry, Proteomics, Metabolomics, ExperimentHubSoftware, Normalization, Preprocessing, QualityControl
+    R (>= 4.6)
+biocViews: MassSpectrometry, Proteomics, Metabolomics, Normalization, Preprocessing, QualityControl

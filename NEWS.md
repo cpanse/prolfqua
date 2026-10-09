@@ -1,3 +1,33 @@
+# prolfqua 0.99.2 (Bioconductor submission)
+
+- Corresponds to prolfqua 1.9.0 on GitHub, which addresses the review in [BiocContributions #171](https://github.com/Bioconductor/BiocContributions/issues/171); the changes are listed below.
+- Requires R >= 4.6.
+
+# prolfqua 1.9.0
+
+Changes for the Bioconductor review ([BiocContributions #171](https://github.com/Bioconductor/BiocContributions/issues/171)).
+
+## Bug fixes
+
+- `citation("prolfqua")` works again: `inst/CITATION` contained a non-ASCII dash that `utils::readCitationFile()` could not read.
+
+## Documentation
+
+- New introductory vignette `vignette("prolfqua")`: introduction, installation with BiocManager, a quick start, and links to all tutorials on the package website.
+- `Comparing2Groups` describes the simulated data it actually uses (the text still referred to MaxQuant Ionstar data) and no longer looks up protein IDs that do not exist in it. Both vignettes use BiocStyle.
+- `?prolfqua` opens a package overview page.
+- Typos fixed across the help pages, vignettes and README.
+
+## Behaviour changes
+
+- `script_copy_helper_vec()` gains an `overwrite` argument (default `TRUE`, as before).
+- `summary_ROPECA_median_p.scaled()` is renamed to `summary_ROPECA_median_p_scaled()` (Bioconductor function names must not contain `.`). There is no alias.
+
+## Removed
+
+- Datasets `data_spectronautDIA250_A`, `data_skylinePRMSample_A` and `data_skylineSRM_HL_A`; their examples use simulated data now. `data_IonstarProtein_subsetNorm` and `data_SAINTe_output` move to prolfquasaint, `data_benchmarkExample` and `data_test_confusion_matrix_scores` to prolfquabenchmark (`prolfqua_data(<name>, package = <package>)`). The unused ExperimentHub manifest `inst/extdata/metadata.csv` is gone. `inst/script/README.md` documents the four datasets that remain.
+- The `lm_missing` method (`ContrastsLMMissingFacade`) and `ContrastsMissing` (group-mean substitution with a pooled-variance t-test). `MissingHelpers` keeps `get_stats()` and `get_lod()`; its imputation and contrast methods and the `weighted` argument are gone. All of it lives on in the new package [prolfquatakeoutmissing](https://github.com/prolfqua/prolfquatakeoutmissing): loading it registers `method = "lm_missing"` again. In prolfqua, use `lm_impute`, which refits the proteins plain `lm` cannot estimate with LOD-imputed values.
+
 # prolfqua 1.8.0
 
 This release removes about 3,600 lines (20%) of dead or duplicated code from `R/`. Everything removed had no callers in prolfqua or in the downstream packages (prolfquapp, prophosqua, prolfquappPTMreaders, prolfquasaint, prolfquabenchmark, ptm-pipeline).

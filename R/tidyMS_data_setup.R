@@ -125,7 +125,7 @@
     "') combination(s).\n",
     "Each hierarchy key must be observed at most once per sample.\n",
     "First offending keys:\n",
-    paste(utils::capture.output(print(utils::head(offending, 5))), collapse = "\n"),
+    paste(utils::capture.output(utils::head(offending, 5)), collapse = "\n"),
     "\nRe-run setup_analysis(..., debug = TRUE) to return the full count table for inspection ",
     "(rows where n > 1)."
   )
@@ -165,22 +165,7 @@
 #' @family configuration
 #' @examples
 #'
-#' skylineconfig <- AnalysisConfiguration$new()
-#' skylineconfig$file_name <- "Replicate.Name"
-#' skylineconfig$hierarchy[["protein_Id"]] <- "Protein.Name"
-#' skylineconfig$hierarchy[["peptide_Id"]] <- "Peptide.Sequence"
-#' skylineconfig$hierarchy[["precursor_Id"]] <- c("Peptide.Sequence", "Precursor.Charge")
-#' skylineconfig$hierarchy[["fragment_Id"]] <- c(
-#'   "Peptide.Sequence", "Precursor.Charge",
-#'   "Fragment.Ion", "Product.Charge"
-#' )
-#' skylineconfig$ident_q_value <- "Detection.Q.Value"
-#' skylineconfig$set_response("Area")
-#' skylineconfig$isotope_label <- "Isotope.Label.Type"
-#' skylineconfig$factors[["Time"]] = "Sampling.Time.Point"
-#' sample_analysis <- setup_analysis(prolfqua_data('data_skylinePRMSample_A')$data, skylineconfig)
-#'
-#' # Example with normValue column (e.g., creatinine)
+#' # Example with a normValue column (e.g., creatinine)
 #' set.seed(1234)
 #' data <- sim_lfq_data(Nprot = 10, PEPTIDE = TRUE, N = 4)
 #' data$nr_children <- 1
@@ -240,7 +225,7 @@ setup_analysis <- function(data, configuration, debug = FALSE) {
 #'
 #' @export
 #' @param data data.frame
-#' @param config AnlalysisConfiguration
+#' @param config AnalysisConfiguration
 #' @family configuration
 #' @keywords internal
 #' @examples
@@ -314,7 +299,8 @@ complete_cases <- function(lfqdata) {
 #' subset <- sample_subset(2, bb$data, bb$config$hierarchy_keys_depth())
 #' length(unique(subset[[bb$config$hierarchy_keys_depth()[1]]]))
 sample_subset <- function(size, pdata, hierarchy_keys_depth) {
-  message("Sampling ", size, paste(hierarchy_keys_depth, collapse = ","))
+  keys <- paste(hierarchy_keys_depth, collapse = ",")
+  message("Sampling ", size, " ", keys)
   hkdf <- pdata |> select(all_of(hierarchy_keys_depth)) |> distinct() |> sample_n(size = size)
   sdata <- inner_join(hkdf, pdata)
   return(sdata)

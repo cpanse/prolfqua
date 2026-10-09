@@ -13,27 +13,24 @@ holds results when contrasts are added.
 }
 \examples{
 
-bb <-prolfqua::sim_lfq_data_peptide_config()
-configur <- bb$config$clone(deep=TRUE)
-configur$hierarchy_depth <- 2
-data <- bb$data
-lfqdata <- LFQData$new(data, configur)
-lfqdata$factors()
+istar <- prolfqua::sim_lfq_data_protein_config(Nprot = 30)
+lfqdata <- LFQData$new(istar$data, istar$config)
+lfqdata$rename_response("transformedIntensity")
 Contrasts <- c("aC" = "group_A - group_Ctrl",
-"bC" = "group_A - group_Ctrl")
-csi <- ContrastsMissing$new(lfqdata, contrasts = Contrasts)
-ctr <- csi$get_contrasts()
-csi$subject_id
-xcx <- ContrastsTable$new(ctr, subject_id = csi$subject_id, model_name = "TableTest")
+"bC" = "group_B - group_Ctrl")
+fa <- ContrastsLMFacade$new(lfqdata, "~ group_", Contrasts)
+ctr <- fa$get_contrasts()
+fa$contrast$subject_id
+xcx <- ContrastsTable$new(ctr, subject_id = fa$contrast$subject_id, model_name = "TableTest")
 xcx$get_contrasts()
 xcx$get_Plotter()$volcano()
 stopifnot(is.null(xcx$get_contrast_sides()))
 stopifnot(is.null(xcx$get_linfct()))
-stopifnot(ncol(xcx$to_wide()) == 10)
+stopifnot(ncol(xcx$to_wide()) == 9)
 
 }
 \seealso{
-\code{\link{summary_ROPECA_median_p.scaled}}
+\code{\link{summary_ROPECA_median_p_scaled}}
 
 Other modelling: 
 \code{\link{AnovaExtractor}},
@@ -46,7 +43,6 @@ Other modelling:
 \code{\link{ContrastsFirthNestedFacade}},
 \code{\link{ContrastsLMFacade}},
 \code{\link{ContrastsLMImputeFacade}},
-\code{\link{ContrastsLMMissingFacade}},
 \code{\link{ContrastsLimma}},
 \code{\link{ContrastsLimmaFacade}},
 \code{\link{ContrastsLimmaImputeFacade}},
@@ -55,7 +51,6 @@ Other modelling:
 \code{\link{ContrastsLimpaFacade}},
 \code{\link{ContrastsLimpaNestedFacade}},
 \code{\link{ContrastsLmerNestedFacade}},
-\code{\link{ContrastsMissing}},
 \code{\link{ContrastsModerated}},
 \code{\link{ContrastsModeratedDEqMS}},
 \code{\link{ContrastsPlotter}},
@@ -120,7 +115,7 @@ Other modelling:
 \code{\link{strategy_limma}()},
 \code{\link{strategy_limpa}()},
 \code{\link{strategy_logistf}()},
-\code{\link{summary_ROPECA_median_p.scaled}()},
+\code{\link{summary_ROPECA_median_p_scaled}()},
 \code{\link{vcov.rfit_prolfqua}()}
 }
 \concept{modelling}
@@ -168,7 +163,7 @@ Other modelling:
 \if{html}{\out{<a id="method-ContrastsTable-new"></a>}}
 \if{latex}{\out{\hypertarget{method-ContrastsTable-new}{}}}
 \subsection{Method \code{new()}}{
-intitialize
+initialize
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{ContrastsTable$new(
   contrastsdf,

@@ -48,8 +48,8 @@ stopifnot("ggplot" \%in\% class(p$FDR))
 stopifnot("ggplot" \%in\% class(p$p.value))
 res <- cp$volcano()
 stopifnot("ggplot" \%in\% class(res$FDR))
-respltly <- cp$volcano_plotly()
-stopifnot("plotly" \%in\% class(respltly$FDR))
+res_plotly <- cp$volcano_plotly()
+stopifnot("plotly" \%in\% class(res_plotly$FDR))
 stopifnot("ggplot" \%in\%  class(cp$ma_plot()))
 stopifnot("plotly" \%in\%   class(cp$ma_plotly(rank=TRUE)))
 res  <- cp$barplot_threshold()
@@ -69,7 +69,6 @@ Other modelling:
 \code{\link{ContrastsFirthNestedFacade}},
 \code{\link{ContrastsLMFacade}},
 \code{\link{ContrastsLMImputeFacade}},
-\code{\link{ContrastsLMMissingFacade}},
 \code{\link{ContrastsLimma}},
 \code{\link{ContrastsLimmaFacade}},
 \code{\link{ContrastsLimmaImputeFacade}},
@@ -78,7 +77,6 @@ Other modelling:
 \code{\link{ContrastsLimpaFacade}},
 \code{\link{ContrastsLimpaNestedFacade}},
 \code{\link{ContrastsLmerNestedFacade}},
-\code{\link{ContrastsMissing}},
 \code{\link{ContrastsModerated}},
 \code{\link{ContrastsModeratedDEqMS}},
 \code{\link{ContrastsRLMFacade}},
@@ -143,7 +141,7 @@ Other modelling:
 \code{\link{strategy_limma}()},
 \code{\link{strategy_limpa}()},
 \code{\link{strategy_logistf}()},
-\code{\link{summary_ROPECA_median_p.scaled}()},
+\code{\link{summary_ROPECA_median_p_scaled}()},
 \code{\link{vcov.rfit_prolfqua}()}
 
 Other plotting: 
@@ -210,7 +208,7 @@ Other plotting:
 \if{html}{\out{<a id="method-ContrastsPlotter-new"></a>}}
 \if{latex}{\out{\hypertarget{method-ContrastsPlotter-new}{}}}
 \subsection{Method \code{new()}}{
-create Crontrast_Plotter
+create ContrastsPlotter
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{ContrastsPlotter$new(
   contrast_df,

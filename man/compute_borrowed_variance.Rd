@@ -61,7 +61,6 @@ Other modelling:
 \code{\link{ContrastsFirthNestedFacade}},
 \code{\link{ContrastsLMFacade}},
 \code{\link{ContrastsLMImputeFacade}},
-\code{\link{ContrastsLMMissingFacade}},
 \code{\link{ContrastsLimma}},
 \code{\link{ContrastsLimmaFacade}},
 \code{\link{ContrastsLimmaImputeFacade}},
@@ -70,7 +69,6 @@ Other modelling:
 \code{\link{ContrastsLimpaFacade}},
 \code{\link{ContrastsLimpaNestedFacade}},
 \code{\link{ContrastsLmerNestedFacade}},
-\code{\link{ContrastsMissing}},
 \code{\link{ContrastsModerated}},
 \code{\link{ContrastsModeratedDEqMS}},
 \code{\link{ContrastsPlotter}},
@@ -135,7 +133,7 @@ Other modelling:
 \code{\link{strategy_limma}()},
 \code{\link{strategy_limpa}()},
 \code{\link{strategy_logistf}()},
-\code{\link{summary_ROPECA_median_p.scaled}()},
+\code{\link{summary_ROPECA_median_p_scaled}()},
 \code{\link{vcov.rfit_prolfqua}()}
 }
 \concept{modelling}

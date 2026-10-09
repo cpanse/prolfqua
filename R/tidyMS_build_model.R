@@ -6,7 +6,7 @@
 #' @param model_name name of model
 #' @param complete_models_int reduced model
 #' @param model_name_int name of reduced model
-#' @param subject_id subject id typically Assession or protein_Id
+#' @param subject_id subject id typically Accession or protein_Id
 #' @param path default NULL, set to a directory if you need to write diagnostic plots.
 #' @examples
 #' data_2Factor <- prolfqua::sim_lfq_data_2factor_config(
@@ -563,13 +563,11 @@ compute_borrowed_variance <- function(
     target <- names(tab)[order(-as.integer(tab), names(tab))][1]
     keep <- keys == target
     if (!any(keep)) {
-      stop(structure(
-        class = c("prolfqua_borrow_failed", "error", "condition"),
-        list(
-          message = "No donor fits with a borrowable full covariance matrix.",
-          call = NULL
-        )
-      ))
+      rlang::abort(
+        "No donor fits with a borrowable full covariance matrix.",
+        class = "prolfqua_borrow_failed",
+        call = NULL
+      )
     }
     vcov_list <- vcov_list[keep]
   } else {

@@ -53,7 +53,7 @@ mod <- build_model(
 
 }
 \seealso{
-\code{\link{summary_ROPECA_median_p.scaled}}
+\code{\link{summary_ROPECA_median_p_scaled}}
 
 Other modelling: 
 \code{\link{AnovaExtractor}},
@@ -66,7 +66,6 @@ Other modelling:
 \code{\link{ContrastsFirthNestedFacade}},
 \code{\link{ContrastsLMFacade}},
 \code{\link{ContrastsLMImputeFacade}},
-\code{\link{ContrastsLMMissingFacade}},
 \code{\link{ContrastsLimma}},
 \code{\link{ContrastsLimmaFacade}},
 \code{\link{ContrastsLimmaImputeFacade}},
@@ -75,7 +74,6 @@ Other modelling:
 \code{\link{ContrastsLimpaFacade}},
 \code{\link{ContrastsLimpaNestedFacade}},
 \code{\link{ContrastsLmerNestedFacade}},
-\code{\link{ContrastsMissing}},
 \code{\link{ContrastsModerated}},
 \code{\link{ContrastsModeratedDEqMS}},
 \code{\link{ContrastsPlotter}},
@@ -140,7 +138,7 @@ Other modelling:
 \code{\link{strategy_limma}()},
 \code{\link{strategy_limpa}()},
 \code{\link{strategy_logistf}()},
-\code{\link{summary_ROPECA_median_p.scaled}()},
+\code{\link{summary_ROPECA_median_p_scaled}()},
 \code{\link{vcov.rfit_prolfqua}()}
 }
 \concept{modelling}
@@ -208,7 +206,7 @@ initialize
 
 \item{\code{model_name}}{default ROPECA}
 
-\item{\code{p.adjust}}{function to use for p.value adjustement}
+\item{\code{p.adjust}}{function to use for p.value adjustment}
 }
 \if{html}{\out{</div>}}
 }
